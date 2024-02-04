@@ -1,0 +1,64 @@
+---
+title: "FML Assignment 1"
+author: "Akshaya Mamidipalli"
+date: "2024-02-04"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#loading the required packages
+
+```{r}
+library(ggplot2)
+library(tinytex)
+```
+#downloaded the dataset from the kaggle (https://www.kaggle.com/datasets/arthurchongg/imdb-top-1000-movies)
+
+#loading the dataset
+
+```{r}
+IMDB_dataset <- read.csv("C:/Users/mamid/Downloads/IMDB_1000.csv")
+```
+#summary of the dataset
+
+```{r}
+summary(IMDB_dataset)
+```
+#mean of the rating variable
+```{r}
+mean(IMDB_dataset$rating)
+```
+#descriptive statistics of the variables
+```{r}
+IMDB_quantitative <- IMDB_dataset[, c('release_year','runtime','rating','metascore','gross')]
+
+IMDB_categorical <- IMDB_dataset[, c('title' , 'director', 'genre')]
+
+```
+#printing the descriptive statistics
+
+```{r}
+summary(IMDB_quantitative)
+summary(IMDB_categorical)
+```
+#log transformation of quantitative variable
+```{r}
+log(IMDB_dataset$metascore)
+```
+
+#histogram of a quantitative variable
+```{r}
+hist(IMDB_dataset$rating , main = "Histogram of rating", xlab = "rating", col = "red")
+```
+
+#scatterplot of the quantitative variables
+```{r}
+plot(IMDB_dataset$release_year , IMDB_dataset$gross , main = "Scatterplot of release_year vs. gross", xlab = "release_year", ylab = "gross", col = "blue")
+```
+
+

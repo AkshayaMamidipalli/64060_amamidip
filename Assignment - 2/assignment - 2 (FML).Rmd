@@ -1,0 +1,192 @@
+---
+title: "Assignment-2"
+author: "Akshaya Mamidipalli"
+date: "2024-02-26"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r}
+library(caret)
+
+
+library(class)
+library(ISLR)   
+library(dplyr)
+library(fastDummies)
+## 
+## Attaching package: 'dplyr'
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+
+
+
+BankData <- read.csv("C:/Users/mamid/Downloads/UniversalBank (1).csv")
+BankData$Personal.Loan<-factor(BankData$Personal.Loan,levels=c('0','1'),labels=c('No','Yes'))
+summary(BankData)
+```
+
+
+```{r}
+dummy_BankData <- dummy_columns(BankData, select_columns = 'Education')
+modified_BankData <- select(dummy_BankData,Age,Experience,Income,Family,CCAvg,Education_1,Education_2,Education_3,Mortgage,Personal.Loan,Securities.Account,CD.Account,Online,CreditCard)
+modified_BankData <- modified_BankData %>% relocate(Personal.Loan,.after=last_col())
+```
+
+
+
+
+```{r}
+set.seed(1)
+Train_Index <- sample(row.names(modified_BankData), .6*dim(modified_BankData)[1])
+Val_Index <- setdiff(row.names(modified_BankData), Train_Index)
+Train_Data <- modified_BankData [Train_Index,]
+Validation_Data <- modified_BankData [Val_Index,]
+summary(Train_Data)
+```
+
+
+
+
+
+```{r}
+columnsare <-c(1,2,3,4,5,9)
+BankData_norm <- modified_BankData
+train_norm <- Train_Data
+valid_norm <- Validation_Data
+norm_values <- preProcess(Train_Data[,columnsare], method=c("center","scale"))
+```
+
+
+```{r}
+#putting the normalized data back into the dataframes
+train_norm [, columnsare] <-predict(norm_values,Train_Data[,columnsare])
+valid_norm [, columnsare] <-predict(norm_values,Validation_Data[,columnsare])
+summary(train_norm)
+```
+
+
+
+
+```{r}
+Training_knn_predictors <- train_norm[, 1:13]
+Training_knn_success <-train_norm [,14]
+valid_knn_predictors <- valid_norm[, 1:13]
+valid_knn_success <-valid_norm[,14]
+knn_results <- knn (train=Training_knn_predictors, test=valid_knn_predictors, cl=Training_knn_success, k=1, prob=TRUE)
+confusionMatrix(knn_results,valid_knn_success, positive="Yes")
+```
+
+
+
+
+
+```{r}
+Customer_sid = data.frame(Age = as.integer(40), Experience = as.integer(10), Income = as.integer(84), Family = as.integer(2), CCAvg = as.integer(2), Education1 = as.integer(0), Education2 = as.integer(1), Education3 = as.integer(0), Mortgage = as.integer(0), Securities.Account = as.integer(0), CD.Account = as.integer(0), Online = as.integer(1), CreditCard = as.integer(1))
+```
+
+
+```{r}
+#load the data into a customertest dataframe.
+customer_sid_norm <- Customer_sid
+customer_sid_norm[, columnsare]<-predict(norm_values,Customer_sid[,columnsare])
+```
+
+
+```{r}
+
+set.seed(400)
+customer_sid_knn <- knn(train=Training_knn_predictors, test=customer_sid_norm,cl=Training_knn_success,k=1, prob=TRUE) 
+#calculate knn for customer.
+head(customer_sid_knn) 
+## [1] No
+## Levels: No
+
+#2. On our validation set, we will now evaluate the performance of our model with various k values in order to find the best k value.
+```
+
+
+```{r}
+Accuracy.df <- data.frame(k = seq(1,14,1), accuracy = rep(0 , 14))
+#Now we will make a table with all of the k and their accuracies from 1 to 14.
+for(i in 1:14){
+  knn_predictor <- knn(Training_knn_predictors,valid_knn_predictors, cl=Training_knn_success,k=i)
+Accuracy.df[i,2] <- confusionMatrix(knn_predictor, valid_knn_success)$overall[1]
+  }
+Accuracy.df
+##     k accuracy
+## 1   1   0.9610
+## 2   2   0.9545
+## 3   3   0.9620
+## 4   4   0.9550
+## 5   5   0.9580
+## 6   6   0.9495
+## 7   7   0.9545
+## 8   8   0.9485
+## 9   9   0.9540
+## 10 10   0.9505
+## 11 11   0.9520
+## 12 12   0.9470
+## 13 13   0.9510
+## 14 14   0.9445
+plot(x=Accuracy.df$k, y=Accuracy.df$accuracy, main="Accuracy vs K", xlab="k",ylab="accuracy")
+```
+
+
+```{r}
+which.max(Accuracy.df$accuracy)
+
+customer_knn3 <- knn(train=Training_knn_predictors, test=customer_sid_norm,cl=Training_knn_success,k=3, prob=TRUE)
+head(customer_knn3)
+```
+
+
+```{r}
+knn_k3 <- knn(train = Training_knn_predictors,test=valid_knn_predictors,cl=Training_knn_success,k=3, prob=TRUE)
+confusionMatrix(knn_k3,valid_knn_success,)
+```
+
+
+
+
+
+```{r}
+set.seed(500)
+Train_Index <- sample(row.names(modified_BankData), .5*dim(modified_BankData)[1])#create train index
+Val_Index <- sample(setdiff(row.names(modified_BankData),Train_Index),.3*dim(modified_BankData)[1])#create validation index
+Test_Index =setdiff(row.names(modified_BankData),union(Train_Index,Val_Index))#create test index
+#load the data
+Train_Data <- modified_BankData [Train_Index,]
+Validation_Data <- modified_BankData [Val_Index,]
+Test_Data <- modified_BankData [Test_Index,]
+```
+
+
+```{r}
+#normalize the quantitative data
+norm_values3 <- preProcess(modified_BankData [,columnsare], method=c("center", "scale"))
+train_norm_df3 = Train_Data
+val_norm_df3 = Validation_Data
+test_norm_df3 = Test_Data
+train_norm_df3[, columnsare] <- predict(norm_values3, Train_Data[, columnsare])
+val_norm_df3[, columnsare] <- predict(norm_values3, Validation_Data[, columnsare])
+test_norm_df3[, columnsare] <- predict(norm_values3, Test_Data[, columnsare])
+#run knn for all 3
+knn_training <- knn(train=train_norm_df3[,-14],test=train_norm_df3[,-14],cl=train_norm_df3[,14], k=3, prob=TRUE)
+knn_validation<- knn(train=train_norm_df3[,-14],test=val_norm_df3[,-14],cl=train_norm_df3[,14],k=3, prob=TRUE)
+knn_testing<- knn(train=train_norm_df3[,-14],test=test_norm_df3[,-14],cl=train_norm_df3[,14],k=3, prob=TRUE)
+#display the confusion matrices
+confusionMatrix(knn_training,train_norm_df3[,14], positive="Yes")
+
+confusionMatrix(knn_validation,val_norm_df3[,14], positive="Yes")
+
+confusionMatrix(knn_testing,test_norm_df3[,14], positive="Yes")
+
+
+```
+

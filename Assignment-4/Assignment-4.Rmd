@@ -1,0 +1,143 @@
+---
+title: "FML assignment-4"
+author: "Akshaya Mamidipalli"
+date: "2024-03-17"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(flexclust)
+```
+```{r}
+library(cluster)
+library(tidyverse)  
+
+```
+```{r}
+library(factoextra) 
+```
+```{r}
+library(FactoMineR)
+library(ggcorrplot)
+
+```
+a. Use only the numerical variables (1 to 9) to cluster the 21 firms. Justify the various choices made in
+conducting the cluster analysis, such as weights for different variables, the specific clustering algorithm(s)
+used, the number of clusters formed, and so on.
+
+```{r}
+data <- read.csv("C:/Users/mamid/Downloads/Pharmaceuticals.csv")
+```
+
+```{r}
+Numerical_data <- data[3:11]
+```
+
+```{r}
+head(Numerical_data)
+```
+```{r}
+summary(Numerical_data)
+```
+```{r}
+standardized_data <- scale(Numerical_data)
+distance <- get_dist(Numerical_data)
+fviz_dist(distance)
+```
+```{r}
+corr <- cor(standardized_data)
+ggcorrplot(corr, outline.color = "grey50", lab = TRUE, hc.order = TRUE, type = "full") 
+
+```
+```{r}
+pca <- PCA(standardized_data)
+```
+```{r}
+variance <- get_pca_var(pca)
+fviz_pca_var(pca, col.var="contrib", gradient.cols = c("grey","yellow","purple","red","blue"),ggrepel = TRUE ) + labs( title = "PCA Variable Variance")
+
+```
+```{r}
+set.seed(10)
+wss <- vector()
+for(i in 1:10) wss[i] <- sum(kmeans(standardized_data,i)$withinss)
+plot(1:10, wss , type = "b" , main = paste('Cluster of Companies') , xlab = "Number of Clusters", ylab="wss")
+
+```
+```{r}
+fviz_nbclust(standardized_data, kmeans, method = "silhouette")
+```
+```{r}
+set.seed(1)
+k5 <- kmeans(standardized_data, centers = 5, nstart = 20) 
+# k = 5, number of restarts = 20
+k5$centers 
+
+```
+```{r}
+k5$size  
+```
+
+```{r}
+fviz_cluster(k5, data = standardized_data) 
+```
+#K-means clustering, using Manhattan Distance
+
+```{r}
+set.seed(1)
+k51 <-  kcca(standardized_data, k=5, kccaFamily("kmedians"))
+k51
+
+```
+#Using predict function
+
+```{r}
+clusters_index <- predict(k51)
+dist(k51@centers)
+```
+```{r}
+image(k51)
+points(standardized_data, col=clusters_index, pch=19, cex=0.3)
+```
+b.Interpret the clusters with respect to the numerical variables used in forming the clusters
+
+```{r}
+Numerical_data %>% mutate(Cluster = k5$cluster) %>% group_by(Cluster) %>% 
+summarise_all("mean")
+```
+```{r}
+clusplot(standardized_data,k5$cluster, main="Clusters",color = TRUE, labels = 2,lines = 0)
+```
+Cluster 1: AVE, WPI, MRX, and ELN Group 2: PHA and AGN Cluster 3: AZN, LLY, ABT, NVS, SGP, AHM, WYE, BMY, and AZN Cluster 4: IVX, BAY, and CHTT Cluster 5: PFE, GSK, MRK, and JNJ We can infer that Cluster 1 has the highest Net Profit Margin, the lowest PE ratio, and the fastest revenue growth based on the means of the cluster variables. It is available for purchase or reserve.PE ratio for Cluster 2 is very high. Cluster 3's risk is average. Cluster 4: Despite having a good PE ratio, this stock is extremely risky to own due to its high risk, extremely high leverage, and low net profit margin.. Revenue growth is also very low.Cluster 5 has a high market capitalization, return on investment, return on assets, asset turnover, and net profit margin. With a low PE ratio, the stock price is moderately valued and hence can be purchased and held evenue growth of 18.5% is good
+
+
+C.Is there a pattern in the clusters with respect to the numerical variables (10 to 12)? (those not used in
+forming the clusters)
+```{r}
+Info <- data[12:14] %>% mutate(Clusters=k5$cluster)
+ggplot(Info, mapping = aes(factor(Clusters), fill =Median_Recommendation))+geom_bar(position='dodge')+labs(x ='Clusters')
+
+```
+
+```{r}
+ggplot(Info, mapping = aes(factor(Clusters),fill = Location))+geom_bar(position = 'dodge')+labs(x ='Clusters')
+```
+
+```{r}
+ggplot(Info, mapping = aes(factor(Clusters),fill = Exchange))+geom_bar(position = 'dodge')+labs(x ='Clusters')
+```
+There seems to be a pattern with clusters and the variable Median Recommendation. There doesn't seem to be any discernible pattern among the clusters, locations, or exchanges, with the exception of the majority of the clusters/companies being based in the United States and listed on the NYSE.
+
+
+##d.Provide an appropriate name for each cluster using any or all of the variables in the dataset. 
+Cluster 1: Best Buying 
+Cluster 2: Highly Risky 
+Cluster 3: Go for it 
+Cluster 4: Very Risky or Runaway 
+Cluster 5: Ideal to Own
